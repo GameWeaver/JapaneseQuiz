@@ -10,3 +10,7 @@ I thought a little quiz might help my memory.
 ```python
 python KanjiQuiz.py
 ```
+
+### Things to change
+
+Refactor KanjiData to use Tuples/Named Tuples, use python enumerate()
