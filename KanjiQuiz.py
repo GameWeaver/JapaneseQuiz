@@ -29,40 +29,21 @@ import os
 import random
 import json
 from KanjiData import kanjis
+from collections import namedtuple
 
-introText = """Welcome To the Super Japanese Quiz!
+Question = namedtuple('question', ['type', 'question'], verbose=False)
+questions = [
+	Question('kanji', u"What is the かんじ for %s(%s)"),
+	Question('meaning', u"What is the meaning of %s(%s)"),
+	Question('kunyomi', u"What is the くんよみ for %s(%s)"),
+	Question('onyomi', u"What is the おんよみ for %s(%s)")
+]
 
-Do your best!
-
-The game is multiple choice, when you know the answer
-to a question enter, 1,2,3 or 4 and hit return.
-"""
-
-questionKeys = [
-    {
-    "type": "kanji",
-    "question": u"What is the かんじ for %s(%s)",
-    "score": 0,
-    "outof": 0
-    },
-    {
-    "type": "kunyomi",
-    "question": u"What is the くんよみ for %s(%s)",
-    "score": 0,
-    "outof": 0
-    },
-    {
-    "type": "onyomi",
-    "question": u"What is the おんよみ for %s(%s)",
-    "score": 0,
-    "outof": 0
-    },
-    {
-    "type": "meanings",
-    "question": u"What is the meaning of %s(%s)",
-    "score": 0,
-    "outof": 0
-    }
+scores = [
+	{'type': 'kanji', 'score': 0, 'outof': 0},
+	{'type': 'meaning', 'score': 0, 'outof': 0},
+	{'type': 'kunyomi', 'score': 0, 'outof': 0},
+	{'type': 'onyomi', 'score': 0, 'outof': 0}
 ]
 
 #Try and clear the screen
@@ -81,58 +62,46 @@ def clearScreen():
 #print scores
 def PrintScores():
 	print "Current score:"
-	for item in questionKeys:
+	for item in scores:
 		print "Type: %s,\t score: %s out of %s" % (item['type'], item['score'], item['outof'])
 	print ""
 
-#Pick a random item from the list,
-#Pick a key to be answer.
 def CreateQuestion():
 
-	#Pick an item
-	index = random.randrange(0,len(kanjis))
+	#Pick a dataitem at random
+	index = random.randrange(0,len(kanjis)-1)
 	targetItem = kanjis[index]
 
-	#pick the target question item
-	items = list(xrange(len(questionKeys)))
-	randomKeyIndex = random.choice(items)
+	#Pick a question at random
+	qindex = random.randrange(0,len(questions)-1)
+	q = questions[qindex]
+	
+	#Get a list of answer types, that are not the question type
+	fields = list(targetItem._fields)
+	fields.remove(q.type)
+	rndom = random.randrange(0,len(fields))
+	val = getattr(targetItem, fields[rndom])
 
-	guessTarget = targetItem[questionKeys[randomKeyIndex]['type']]
-
-	#Now select one of the other questions to ask
-	#except this one.
-	items.remove(randomKeyIndex)
-	questionToAskIndex = random.choice(items)
-
-	print questionKeys[questionToAskIndex]['question'] % (guessTarget,questionKeys[randomKeyIndex]['type'])
-
-	#here we can get a list of possible answers
-	lsoptions = list(xrange(len(kanjis)))
-	lsoptions.remove(index)
-
-	#Select 3 random from list.
-	#I imagine a bug here in future, where
-	#two hiraganas may clash.
-	indexes = random.sample(lsoptions, 3)
-	indexes.append(index)
-
-	random.shuffle(indexes)
-
-	correctAnswer = indexes.index(index)
+	#find other possible answers to mix in the result
+	possibleAnswers = kanjis
+	del possibleAnswers[index]
+	values = random.sample(possibleAnswers, 3)
+	values.append(targetItem)
+	random.shuffle(values)
+	
+	#Find the correct answer after the shuffle
+	correctAnswer = values.index(targetItem)
 	humanAnswer = correctAnswer+1
 
-	print ""
-	#print "Maybe it's...(hint, its: %s)" % humanAnswer
-	print "Pick an answer..."
+	#Show the question
+	print q.question % (val, fields[rndom])
+	
+	for i, answer in list(enumerate(values, start=1)):
+		print "%s) - %s" % (i, getattr(answer, q.type))
 
-	ptr = 1
-	for possibleAnswers in indexes:
-		print "%s: %s" % (ptr,kanjis[possibleAnswers][questionKeys[questionToAskIndex]['type']])
-		ptr = ptr + 1
-
-	print ""
 	enteredAnswer = raw_input("What's your answer?...")
-
+	
+	#entered answer cleanup
 	if not enteredAnswer:
 		enteredAnswer = -1
 
@@ -141,20 +110,27 @@ def CreateQuestion():
 	except ValueError:
 		enteredAnswer = -1
 
+	#check answer
 	if enteredAnswer == humanAnswer:
 		print "Correct"
-		questionKeys[questionToAskIndex]['score'] = questionKeys[questionToAskIndex]['score'] + 1
+		scores[qindex]['score'] += 1
 	else:
 		print "Incorrect, the correct answer was: %s" % humanAnswer
 
-	questionKeys[questionToAskIndex]['outof'] = questionKeys[questionToAskIndex]['outof'] + 1
+	scores[qindex]['outof'] += 1
 
 	nextQ = raw_input("Press return key for next question...")
 
 
 def Start():
 	clearScreen()
-	print introText
+	print """Welcome To the Super Japanese Quiz!
+
+	Do your best!
+
+	The game is multiple choice, when you know the answer
+	to a question enter, 1,2,3 or 4 and hit return.
+	"""
 	while True:
 		CreateQuestion()
 		clearScreen()

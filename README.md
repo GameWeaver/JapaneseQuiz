@@ -7,6 +7,8 @@ I thought a little quiz might help my memory.
 
 ### How to run
 
+Open up a command prompt and navigate to the directory you downloaded the files to and type:
+
 ```python
 python KanjiQuiz.py
 ```
